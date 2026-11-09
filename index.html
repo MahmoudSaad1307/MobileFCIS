@@ -631,7 +631,9 @@
             }
             STATE.lectureMCQAnswers[lecId][qId] = optIndex;
             saveState();
+            const y = window.scrollY;
             renderApp();
+            window.scrollTo({ top: y, behavior: 'instant' });
         }
 
         // 4. Flashcards View (3D Flip Animation)
@@ -725,103 +727,207 @@
         function renderSimulatorView() {
             const sim = STATE.simulator;
 
-            // If questions have not been generated yet, show setup screen
+            // ── SETUP SCREEN ────────────────────────────────────────────────────────
             if (sim.questions.length === 0) {
                 return `
-                    <div class="max-w-2xl mx-auto bg-cyber-900 border border-cyber-800 rounded-2xl p-6 sm:p-8 shadow-2xl">
-                        <div class="text-center mb-8">
-                            <span class="w-16 h-16 rounded-2xl bg-cyber-amber/10 border border-cyber-amber/30 text-cyber-amber text-3xl flex items-center justify-center mx-auto mb-4 glow-amber">
-                                🧪
-                            </span>
-                            <h2 class="text-2xl font-bold text-white tracking-tight">All-Lectures Exam Simulator</h2>
-                            <p class="text-sm text-slate-400 mt-2">Simulate real exam conditions across all 5 lectures and official past exam questions with instant grading and timer.</p>
-                        </div>
-
-                        <div class="space-y-5">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Select Subject Scope:</label>
-                                <select id="sim-scope" class="w-full bg-cyber-850 border border-cyber-750 rounded-xl p-3 text-sm text-white outline-none focus:border-cyber-cyan">
-                                    <option value="all">All 5 Lectures + Official Exams (116 Qs pool)</option>
-                                    <option value="1">Lecture 1: Intro & Android Stack</option>
-                                    <option value="2">Lecture 2: Modulation & Activity Lifecycle</option>
-                                    <option value="3">Lecture 3: Wireless LAN & Intents</option>
-                                    <option value="4">Lecture 4: Bluetooth, FHSS & Room DB</option>
-                                    <option value="5">Lecture 5: Wave Propagation & Jetpack Compose</option>
-                                    <option value="exams">Official Past Exams Only</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">Number of Questions:</label>
-                                <div class="grid grid-cols-4 gap-3">
-                                    ${[10, 20, 50, 100].map(cnt => `
-                                        <button onclick="setSimCount(${cnt})" id="cnt-btn-${cnt}" class="p-3 rounded-xl border text-center font-mono font-bold text-sm transition-all ${
-                                            sim.questionCount === cnt ? 'bg-cyber-cyan text-cyber-950 border-cyber-cyan shadow-md' : 'bg-cyber-850 border-cyber-750 text-slate-300 hover:bg-cyber-800'
-                                        }">
-                                            ${cnt}
-                                        </button>
-                                    `).join('')}
+                    <div class="max-w-2xl mx-auto">
+                        <div class="bg-cyber-900 border border-cyber-800 rounded-2xl overflow-hidden shadow-2xl">
+                            <!-- Setup Hero -->
+                            <div class="bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-transparent border-b border-cyber-800 p-6 sm:p-8">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-16 h-16 rounded-2xl bg-cyber-amber/10 border border-cyber-amber/30 flex items-center justify-center text-3xl glow-amber flex-shrink-0">🧪</div>
+                                    <div>
+                                        <h2 class="text-xl sm:text-2xl font-bold text-white tracking-tight">Exam Simulator</h2>
+                                        <p class="text-xs sm:text-sm text-slate-400 mt-1">Instant feedback • Auto-advance • Timer • Full review</p>
+                                    </div>
                                 </div>
                             </div>
 
-                            <button onclick="startSimulator()" class="w-full py-4 mt-6 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-cyber-950 font-bold text-base shadow-lg shadow-amber-500/20 transition-all font-mono">
-                                Launch Exam Simulator →
-                            </button>
+                            <div class="p-6 sm:p-8 space-y-6">
+                                <!-- Scope Selector -->
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-widest mb-3">📚 Subject Scope</label>
+                                    <div class="grid grid-cols-1 gap-2" id="scope-buttons">
+                                        ${[
+                                            { v: 'all',   icon: '🌐', label: 'All Lectures + Official Exams', sub: '116 questions in pool' },
+                                            { v: '1',     icon: '📱', label: 'Lecture 1 — Intro & Android Stack', sub: '20 questions' },
+                                            { v: '2',     icon: '📡', label: 'Lecture 2 — Modulation & Lifecycle', sub: '20 questions' },
+                                            { v: '3',     icon: '📶', label: 'Lecture 3 — Wireless LAN & Intents', sub: '20 questions' },
+                                            { v: '4',     icon: '⚡', label: 'Lecture 4 — Bluetooth, FHSS & Room', sub: '20 questions' },
+                                            { v: '5',     icon: '🎨', label: 'Lecture 5 — Wave & Jetpack Compose', sub: '20 questions' },
+                                            { v: 'exams', icon: '📋', label: 'Official Past Exams Only', sub: '16 questions' },
+                                        ].map((opt, i) => `
+                                            <label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all border-cyber-750 bg-cyber-850 hover:bg-cyber-800 hover:border-cyber-cyan/40 has-[:checked]:border-cyber-cyan has-[:checked]:bg-cyber-cyan/10">
+                                                <input type="radio" name="sim-scope" value="${opt.v}" ${i === 0 ? 'checked' : ''} class="accent-cyan-400">
+                                                <span class="text-lg">${opt.icon}</span>
+                                                <div class="flex-1 min-w-0">
+                                                    <div class="text-xs font-semibold text-white">${opt.label}</div>
+                                                    <div class="text-[10px] text-slate-500 font-mono">${opt.sub}</div>
+                                                </div>
+                                            </label>
+                                        `).join('')}
+                                    </div>
+                                </div>
+
+                                <!-- Question Count -->
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-widest mb-3">🔢 Number of Questions</label>
+                                    <div class="grid grid-cols-4 gap-3">
+                                        ${[10, 20, 50, 100].map(cnt => `
+                                            <button onclick="setSimCount(${cnt})" class="p-3 rounded-xl border text-center font-mono font-bold text-sm transition-all ${
+                                                sim.questionCount === cnt
+                                                    ? 'bg-cyber-cyan text-cyber-950 border-cyber-cyan shadow-md shadow-cyan-400/20'
+                                                    : 'bg-cyber-850 border-cyber-750 text-slate-300 hover:bg-cyber-800 hover:border-cyber-700'
+                                            }">
+                                                ${cnt}
+                                            </button>
+                                        `).join('')}
+                                    </div>
+                                </div>
+
+                                <!-- Mode Toggle -->
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-300 uppercase tracking-widest mb-3">⚙️ Feedback Mode</label>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all border-cyber-cyan bg-cyber-cyan/10">
+                                            <input type="radio" name="sim-mode" value="instant" checked class="accent-cyan-400">
+                                            <div>
+                                                <div class="text-xs font-bold text-white">⚡ Instant Feedback</div>
+                                                <div class="text-[10px] text-slate-400">Shows correct/wrong after each pick</div>
+                                            </div>
+                                        </label>
+                                        <label class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all border-cyber-750 bg-cyber-850 hover:bg-cyber-800">
+                                            <input type="radio" name="sim-mode" value="exam" class="accent-cyan-400">
+                                            <div>
+                                                <div class="text-xs font-bold text-white">🎓 Exam Mode</div>
+                                                <div class="text-[10px] text-slate-400">Reveals answers only after submit</div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <button onclick="startSimulator()" class="w-full py-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-cyber-950 font-extrabold text-base shadow-lg shadow-amber-500/20 transition-all font-mono tracking-wide">
+                                    🚀 Launch Simulator
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
             }
 
-            // Simulator In-Progress or Results
-            const currentQ = sim.questions[sim.currentIndex];
+            // ── RESULTS SCREEN ───────────────────────────────────────────────────────
             const answeredCount = Object.keys(sim.userAnswers).length;
             const totalCount = sim.questions.length;
 
             if (sim.isSubmitted) {
-                // Score Screen
                 let correctCount = 0;
+                let streak = 0;
+                let maxStreak = 0;
                 sim.questions.forEach((q, i) => {
-                    if (sim.userAnswers[i] === q.ans) correctCount++;
+                    if (sim.userAnswers[i] === q.ans) {
+                        correctCount++;
+                        streak++;
+                        maxStreak = Math.max(maxStreak, streak);
+                    } else {
+                        streak = 0;
+                    }
                 });
                 const pct = Math.round((correctCount / totalCount) * 100);
+                const grade = pct >= 90 ? 'A' : pct >= 80 ? 'B+' : pct >= 70 ? 'B' : pct >= 60 ? 'C' : 'F';
+                const gradeColor = pct >= 75 ? 'text-cyber-emerald' : pct >= 50 ? 'text-cyber-amber' : 'text-cyber-rose';
+                const emoji = pct >= 90 ? '🏆' : pct >= 75 ? '🎉' : pct >= 50 ? '📚' : '💪';
 
                 return `
                     <div class="max-w-3xl mx-auto space-y-6">
-                        <div class="bg-cyber-900 border border-cyber-800 rounded-2xl p-6 sm:p-8 text-center shadow-2xl">
-                            <span class="text-4xl mb-2 block">${pct >= 75 ? '🎉' : '📚'}</span>
-                            <h2 class="text-2xl font-bold text-white">Exam Simulation Complete</h2>
-                            <p class="text-sm text-slate-400 mt-1">Here is your official evaluation breakdown</p>
+                        <!-- Score Hero Card -->
+                        <div class="bg-cyber-900 border border-cyber-800 rounded-2xl overflow-hidden shadow-2xl">
+                            <div class="bg-gradient-to-r from-cyber-cyan/5 via-transparent to-cyber-cyan/5 border-b border-cyber-800 p-6 sm:p-8 text-center">
+                                <div class="text-5xl mb-3">${emoji}</div>
+                                <h2 class="text-2xl font-bold text-white">Simulation Complete</h2>
 
-                            <div class="my-6 p-6 bg-cyber-950 rounded-2xl border border-cyber-800 inline-block">
-                                <div class="text-5xl font-mono font-extrabold ${pct >= 75 ? 'text-cyber-emerald' : pct >= 50 ? 'text-cyber-amber' : 'text-cyber-rose'}">${pct}%</div>
-                                <div class="text-xs font-mono text-slate-400 mt-2">${correctCount} Correct out of ${totalCount} Questions</div>
+                                <!-- Big score badge -->
+                                <div class="mt-5 inline-flex items-center gap-5 bg-cyber-950 border border-cyber-800 rounded-2xl px-8 py-5">
+                                    <div>
+                                        <div class="text-6xl font-mono font-extrabold ${gradeColor}">${pct}%</div>
+                                        <div class="text-xs font-mono text-slate-500 mt-1">${correctCount} / ${totalCount} correct</div>
+                                    </div>
+                                    <div class="w-px h-14 bg-cyber-800"></div>
+                                    <div class="text-center">
+                                        <div class="text-4xl font-mono font-extrabold ${gradeColor}">${grade}</div>
+                                        <div class="text-[10px] font-mono text-slate-500 mt-1">Grade</div>
+                                    </div>
+                                </div>
+
+                                <!-- Stats Row -->
+                                <div class="grid grid-cols-3 gap-3 mt-5">
+                                    <div class="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3">
+                                        <div class="text-xl font-mono font-bold text-emerald-400">${correctCount}</div>
+                                        <div class="text-[10px] text-slate-400 mt-0.5">Correct</div>
+                                    </div>
+                                    <div class="bg-rose-500/10 border border-rose-500/30 rounded-xl p-3">
+                                        <div class="text-xl font-mono font-bold text-rose-400">${totalCount - correctCount}</div>
+                                        <div class="text-[10px] text-slate-400 mt-0.5">Wrong</div>
+                                    </div>
+                                    <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3">
+                                        <div class="text-xl font-mono font-bold text-amber-400">${maxStreak}</div>
+                                        <div class="text-[10px] text-slate-400 mt-0.5">Best Streak</div>
+                                    </div>
+                                </div>
+
+                                <div class="flex justify-center gap-3 mt-6">
+                                    <button onclick="resetSimulator()" class="px-5 py-2.5 rounded-xl bg-cyber-cyan text-cyber-950 font-bold text-xs shadow-md shadow-cyan-400/20">↩ Retake</button>
+                                    <button onclick="setActiveTab(6)" class="px-5 py-2.5 rounded-xl bg-cyber-800 hover:bg-cyber-750 text-white text-xs border border-cyber-700">📋 Past Exams</button>
+                                </div>
                             </div>
 
-                            <div class="flex justify-center gap-4">
-                                <button onclick="resetSimulator()" class="px-5 py-2.5 rounded-xl bg-cyber-cyan text-cyber-950 font-bold text-xs">Retake Simulator</button>
-                                <button onclick="setActiveTab(6)" class="px-5 py-2.5 rounded-xl bg-cyber-800 hover:bg-cyber-750 text-white text-xs border border-cyber-700">Review Past Exams</button>
+                            <!-- Mini jump grid for quick review nav -->
+                            <div class="p-4 flex flex-wrap gap-1.5">
+                                ${sim.questions.map((q, i) => {
+                                    const c = sim.userAnswers[i] === q.ans;
+                                    return `<button onclick="scrollToReviewQ(${i})" class="w-7 h-7 rounded text-[10px] font-mono font-bold border transition-colors ${c ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40' : 'bg-rose-500/20 text-rose-400 border-rose-500/40'}">${i + 1}</button>`;
+                                }).join('')}
                             </div>
                         </div>
 
-                        <!-- Review Question List -->
+                        <!-- Detailed Review -->
+                        <h3 class="text-sm font-bold text-white uppercase tracking-wider font-mono">Detailed Answer Review</h3>
                         <div class="space-y-4">
-                            <h3 class="text-base font-bold text-white">Detailed Answer Review:</h3>
                             ${sim.questions.map((q, idx) => {
                                 const userChoice = sim.userAnswers[idx];
                                 const isCorrect = userChoice === q.ans;
                                 return `
-                                    <div class="bg-cyber-900 border ${isCorrect ? 'border-emerald-500/30' : 'border-rose-500/30'} rounded-xl p-5">
-                                        <div class="flex items-center justify-between mb-2">
-                                            <span class="text-xs font-mono font-bold ${isCorrect ? 'text-emerald-400' : 'text-rose-400'}">Question ${idx + 1}: ${isCorrect ? '✓ CORRECT' : '✗ INCORRECT'}</span>
-                                            <span class="text-xs text-slate-500 font-mono">${q.id}</span>
+                                    <div id="review-q-${idx}" class="bg-cyber-900 border ${isCorrect ? 'border-emerald-500/30' : 'border-rose-500/30'} rounded-xl overflow-hidden shadow-md">
+                                        <!-- Header -->
+                                        <div class="flex items-center justify-between px-4 py-2.5 ${isCorrect ? 'bg-emerald-500/10' : 'bg-rose-500/10'} border-b ${isCorrect ? 'border-emerald-500/20' : 'border-rose-500/20'}">
+                                            <span class="text-xs font-mono font-bold ${isCorrect ? 'text-emerald-400' : 'text-rose-400'}">
+                                                ${isCorrect ? '✓ CORRECT' : '✗ INCORRECT'} — Q${idx + 1}
+                                            </span>
+                                            <span class="text-[10px] text-slate-500 font-mono">${q.id}</span>
                                         </div>
-                                        <p class="text-sm text-white mb-3">${q.q}</p>
-                                        <div class="text-xs space-y-1.5 font-mono">
-                                            <div class="text-emerald-400">Correct Answer: (${String.fromCharCode(65 + q.ans)}) ${q.options[q.ans]}</div>
-                                            ${!isCorrect ? `<div class="text-rose-400">Your Answer: ${userChoice !== undefined ? `(${String.fromCharCode(65 + userChoice)}) ${q.options[userChoice]}` : 'Unanswered'}</div>` : ''}
-                                        </div>
-                                        <div class="mt-3 pt-3 border-t border-cyber-850 text-xs text-slate-400 leading-relaxed">
-                                            ${q.explanation}
+                                        <!-- Body -->
+                                        <div class="p-4 space-y-3">
+                                            <p class="text-sm font-semibold text-white leading-relaxed whitespace-pre-line">${q.q}</p>
+                                            <!-- Options summary -->
+                                            <div class="space-y-1.5">
+                                                ${q.options.map((opt, oi) => {
+                                                    const isAns = oi === q.ans;
+                                                    const isUser = oi === userChoice;
+                                                    let cls = 'bg-cyber-850 border-cyber-750 text-slate-400';
+                                                    if (isAns) cls = 'bg-emerald-500/15 border-emerald-500/50 text-emerald-300 font-semibold';
+                                                    else if (isUser && !isAns) cls = 'bg-rose-500/15 border-rose-500/50 text-rose-300 line-through opacity-70';
+                                                    return `
+                                                        <div class="flex items-center gap-2.5 px-3 py-2 rounded-lg border text-xs ${cls}">
+                                                            <span class="w-5 h-5 rounded font-mono font-bold flex items-center justify-center flex-shrink-0 ${isAns ? 'bg-emerald-500 text-cyber-950' : 'bg-cyber-800 text-slate-500'}">${String.fromCharCode(65 + oi)}</span>
+                                                            <span class="leading-relaxed">${opt}</span>
+                                                            ${isAns ? '<span class="ml-auto text-emerald-400 font-mono text-[10px]">✓ Correct</span>' : ''}
+                                                            ${isUser && !isAns ? '<span class="ml-auto text-rose-400 font-mono text-[10px]">✗ Your pick</span>' : ''}
+                                                        </div>
+                                                    `;
+                                                }).join('')}
+                                            </div>
+                                            <div class="pt-2 border-t border-cyber-850 text-xs text-slate-400 leading-relaxed">
+                                                <span class="text-cyber-cyan font-mono font-bold">💡 Explanation: </span>${q.explanation}
+                                            </div>
                                         </div>
                                     </div>
                                 `;
@@ -831,69 +937,146 @@
                 `;
             }
 
-            // Active simulator question runner
+            // ── ACTIVE QUESTION RUNNER ────────────────────────────────────────────────
+            const currentQ = sim.questions[sim.currentIndex];
+            const currentAnswer = sim.userAnswers[sim.currentIndex];
+            const isCurrentAnswered = currentAnswer !== undefined;
+            const isCurrentCorrect = isCurrentAnswered && currentAnswer === currentQ.ans;
+            const instantMode = sim.instantMode !== false; // default to instant
+
             return `
-                <div class="max-w-3xl mx-auto space-y-6">
-                    <!-- HUD Status Bar -->
-                    <div class="bg-cyber-900 border border-cyber-800 rounded-xl p-4 flex items-center justify-between shadow-lg">
-                        <div class="flex items-center gap-3">
-                            <span class="text-xs font-mono text-slate-400">Question ${sim.currentIndex + 1} of ${totalCount}</span>
-                            <div class="w-32 bg-cyber-800 rounded-full h-2 overflow-hidden border border-cyber-750">
-                                <div class="bg-cyber-cyan h-full transition-all duration-300" style="width: ${(answeredCount / totalCount) * 100}%"></div>
+                <div class="max-w-3xl mx-auto space-y-4">
+                    <!-- ── TOP HUD ─────────────────────────────────────────── -->
+                    <div class="bg-cyber-900 border border-cyber-800 rounded-2xl p-4 shadow-lg">
+                        <!-- Progress bar + counters -->
+                        <div class="flex items-center gap-3 mb-3">
+                            <span class="text-xs font-mono text-slate-500 w-20 flex-shrink-0">Q ${sim.currentIndex + 1} / ${totalCount}</span>
+                            <div class="flex-1 bg-cyber-850 rounded-full h-2.5 overflow-hidden border border-cyber-800">
+                                <div class="h-full rounded-full transition-all duration-500 bg-gradient-to-r from-cyan-500 to-blue-500" style="width:${(answeredCount / totalCount) * 100}%"></div>
+                            </div>
+                            <div class="flex items-center gap-2 flex-shrink-0">
+                                <span class="text-[10px] font-mono text-emerald-400">${Object.entries(sim.userAnswers).filter(([i, v]) => sim.questions[i]?.ans === v).length}✓</span>
+                                <span class="text-[10px] font-mono text-rose-400">${Object.entries(sim.userAnswers).filter(([i, v]) => sim.questions[i]?.ans !== v).length}✗</span>
                             </div>
                         </div>
-
-                        <div class="flex items-center gap-3">
-                            <span id="sim-timer" class="font-mono text-xs font-bold text-cyber-amber px-2 py-1 rounded bg-cyber-850 border border-cyber-750">45:00</span>
-                            <button onclick="submitSimulator()" class="px-3 py-1.5 bg-cyber-emerald text-cyber-950 font-bold text-xs rounded-lg shadow-sm">Submit Exam</button>
+                        <!-- Timer + Submit -->
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Time</span>
+                                <span id="sim-timer" class="font-mono text-sm font-bold text-cyber-amber px-2.5 py-1 rounded-lg bg-cyber-850 border border-cyber-750">45:00</span>
+                            </div>
+                            <button onclick="submitSimulator()" class="px-4 py-1.5 bg-cyber-800 hover:bg-cyber-750 text-white font-semibold text-xs rounded-lg border border-cyber-700 transition-colors">
+                                Finish & Submit
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Jump Grid -->
-                    <div class="flex flex-wrap gap-1.5 bg-cyber-900 p-3 rounded-xl border border-cyber-800">
-                        ${sim.questions.map((_, i) => {
-                            const isCurrent = sim.currentIndex === i;
-                            const isAnswered = sim.userAnswers[i] !== undefined;
-                            let style = 'bg-cyber-850 text-slate-400 border-cyber-750';
-                            if (isCurrent) style = 'border-cyber-cyan bg-cyber-800 text-white font-bold ring-1 ring-cyber-cyan';
-                            else if (isAnswered) style = 'bg-cyber-700 text-cyber-cyan border-cyber-600';
-                            return `
-                                <button onclick="setSimQuestionIndex(${i})" class="w-7 h-7 rounded text-xs font-mono font-bold border transition-colors ${style}">
-                                    ${i + 1}
-                                </button>
-                            `;
-                        }).join('')}
+                    <!-- ── QUESTION JUMP GRID ───────────────────────────────── -->
+                    <div class="bg-cyber-900 border border-cyber-800 rounded-xl p-3">
+                        <div class="flex flex-wrap gap-1.5">
+                            ${sim.questions.map((q, i) => {
+                                const isCurrent = sim.currentIndex === i;
+                                const answered = sim.userAnswers[i];
+                                let style;
+                                if (isCurrent) {
+                                    style = 'bg-cyber-cyan text-cyber-950 border-cyber-cyan font-extrabold shadow-sm shadow-cyan-400/30 scale-110';
+                                } else if (answered !== undefined) {
+                                    style = answered === q.ans
+                                        ? 'bg-emerald-500/25 text-emerald-400 border-emerald-500/50'
+                                        : 'bg-rose-500/25 text-rose-400 border-rose-500/50';
+                                } else {
+                                    style = 'bg-cyber-850 text-slate-500 border-cyber-750 hover:bg-cyber-800 hover:text-slate-300';
+                                }
+                                return `<button onclick="setSimQuestionIndex(${i})" class="w-7 h-7 rounded text-[10px] font-mono font-bold border transition-all ${style}">${i + 1}</button>`;
+                            }).join('')}
+                        </div>
                     </div>
 
-                    <!-- Question Card -->
-                    <div class="bg-cyber-900 border border-cyber-800 rounded-2xl p-6 shadow-xl">
-                        <h3 class="text-base sm:text-lg font-bold text-white mb-6 leading-relaxed whitespace-pre-line">${currentQ.q}</h3>
+                    <!-- ── QUESTION CARD ────────────────────────────────────── -->
+                    <div class="bg-cyber-900 border ${isCurrentAnswered ? (isCurrentCorrect ? 'border-emerald-500/50' : 'border-rose-500/50') : 'border-cyber-800'} rounded-2xl overflow-hidden shadow-xl transition-colors duration-300">
 
-                        <div class="space-y-3">
+                        <!-- Question header stripe -->
+                        <div class="flex items-center justify-between px-5 py-3 bg-cyber-850/80 border-b border-cyber-800">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Question ${sim.currentIndex + 1}</span>
+                                <span class="text-[10px] font-mono text-slate-600">• ${currentQ.id}</span>
+                            </div>
+                            ${isCurrentAnswered ? `
+                                <span class="flex items-center gap-1.5 text-xs font-mono font-bold px-2.5 py-1 rounded-full ${isCurrentCorrect ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'}">
+                                    ${isCurrentCorrect ? '✓ Correct' : '✗ Wrong'}
+                                </span>
+                            ` : '<span class="text-[10px] font-mono text-slate-500">Select an answer</span>'}
+                        </div>
+
+                        <!-- Question text -->
+                        <div class="px-5 pt-5 pb-4">
+                            <p class="text-sm sm:text-base font-semibold text-white leading-relaxed whitespace-pre-line">${currentQ.q}</p>
+                        </div>
+
+                        <!-- Options -->
+                        <div class="px-5 pb-4 space-y-2.5">
                             ${currentQ.options.map((opt, optIdx) => {
-                                const isSelected = sim.userAnswers[sim.currentIndex] === optIdx;
+                                const letter = String.fromCharCode(65 + optIdx);
+                                const isCorrectOpt = optIdx === currentQ.ans;
+                                const isUserPick = currentAnswer === optIdx;
+
+                                let btnClass, letterClass;
+                                if (!isCurrentAnswered) {
+                                    // Unanswered state
+                                    btnClass = 'bg-cyber-850 hover:bg-cyber-800 border-cyber-750 hover:border-cyber-cyan/40 text-slate-200 cursor-pointer active:scale-[0.99]';
+                                    letterClass = 'bg-cyber-800 text-slate-400';
+                                } else if (isCorrectOpt) {
+                                    // Correct answer — always highlight green
+                                    btnClass = 'bg-emerald-500/20 border-emerald-500 text-emerald-100 cursor-default shadow-sm';
+                                    letterClass = 'bg-emerald-500 text-cyber-950';
+                                } else if (isUserPick) {
+                                    // User's wrong pick
+                                    btnClass = 'bg-rose-500/15 border-rose-500/60 text-rose-200 cursor-default opacity-80';
+                                    letterClass = 'bg-rose-500/80 text-white';
+                                } else {
+                                    // Other unselected option after answering
+                                    btnClass = 'bg-cyber-950/50 border-cyber-850 text-slate-500 cursor-default opacity-50';
+                                    letterClass = 'bg-cyber-800 text-slate-600';
+                                }
+
+                                const tag = isCurrentAnswered ? 'div' : 'button';
+                                const onclick = isCurrentAnswered ? '' : `onclick="selectSimOption(${optIdx})"`;
+
                                 return `
-                                    <button onclick="selectSimOption(${optIdx})" class="w-full text-left p-4 rounded-xl border flex items-start gap-3 transition-all text-xs sm:text-sm ${
-                                        isSelected
-                                            ? 'bg-cyber-cyan/10 border-cyber-cyan text-white font-semibold'
-                                            : 'bg-cyber-850 hover:bg-cyber-800 border-cyber-750 text-slate-300'
-                                    }">
-                                        <span class="w-6 h-6 rounded-md font-mono font-bold flex items-center justify-center text-xs flex-shrink-0 ${
-                                            isSelected ? 'bg-cyber-cyan text-cyber-950' : 'bg-cyber-800 text-slate-400'
-                                        }">${String.fromCharCode(65 + optIdx)}</span>
+                                    <${tag} ${onclick} class="w-full text-left p-3.5 rounded-xl border flex items-start gap-3 transition-all duration-200 text-xs sm:text-sm ${btnClass}">
+                                        <span class="w-6 h-6 rounded-lg font-mono font-bold flex items-center justify-center text-xs flex-shrink-0 mt-0.5 ${letterClass}">${letter}</span>
                                         <span class="leading-relaxed flex-1">${opt}</span>
-                                    </button>
+                                        ${isCurrentAnswered && isCorrectOpt ? '<span class="ml-auto text-emerald-400 text-lg flex-shrink-0">✓</span>' : ''}
+                                        ${isCurrentAnswered && isUserPick && !isCorrectOpt ? '<span class="ml-auto text-rose-400 text-lg flex-shrink-0">✗</span>' : ''}
+                                    </${tag}>
                                 `;
                             }).join('')}
                         </div>
 
-                        <!-- Prev / Next Navigation -->
-                        <div class="flex items-center justify-between mt-8 pt-4 border-t border-cyber-800">
-                            <button onclick="setSimQuestionIndex(${sim.currentIndex - 1})" ${sim.currentIndex === 0 ? 'disabled' : ''} class="px-4 py-2 rounded-lg bg-cyber-850 hover:bg-cyber-800 text-xs text-slate-300 disabled:opacity-40">
-                                ← Previous
+                        <!-- Explanation panel (shown after answering) -->
+                        ${isCurrentAnswered ? `
+                            <div class="mx-5 mb-5 p-4 rounded-xl ${isCurrentCorrect ? 'bg-emerald-500/8 border border-emerald-500/25' : 'bg-rose-500/8 border border-rose-500/25'}">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="text-sm">${isCurrentCorrect ? '🎯' : '📖'}</span>
+                                        <span class="text-xs font-mono font-bold ${isCurrentCorrect ? 'text-emerald-400' : 'text-rose-300'} uppercase tracking-wider">
+                                            ${isCurrentCorrect ? 'Well done!' : 'Correct answer: (' + String.fromCharCode(65 + currentQ.ans) + ') ' + currentQ.options[currentQ.ans]}
+                                        </span>
+                                    </div>
+                                <p class="text-xs text-slate-300 leading-relaxed">${currentQ.explanation}</p>
+                            </div>
+                        ` : ''}
+
+                        <!-- Navigation footer -->
+                        <div class="flex items-center justify-between px-5 py-3.5 bg-cyber-850/60 border-t border-cyber-800">
+                            <button onclick="setSimQuestionIndex(${sim.currentIndex - 1})" ${sim.currentIndex === 0 ? 'disabled' : ''} class="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyber-800 hover:bg-cyber-750 text-xs text-slate-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors font-semibold border border-cyber-700">
+                                ← Prev
                             </button>
-                            <span class="text-xs font-mono text-slate-500">${sim.currentIndex + 1} / ${totalCount}</span>
-                            <button onclick="setSimQuestionIndex(${sim.currentIndex + 1})" ${sim.currentIndex === totalCount - 1 ? 'disabled' : ''} class="px-4 py-2 rounded-lg bg-cyber-cyan text-cyber-950 font-bold text-xs disabled:opacity-40">
+
+                            <div class="text-xs font-mono text-slate-500">
+                                ${answeredCount} / ${totalCount} answered
+                            </div>
+
+                            <button onclick="setSimQuestionIndex(${sim.currentIndex + 1})" ${sim.currentIndex === totalCount - 1 ? 'disabled' : ''} class="flex items-center gap-1.5 px-4 py-2 rounded-xl ${isCurrentAnswered ? 'bg-cyber-cyan text-cyber-950 shadow-md shadow-cyan-400/20 hover:bg-cyan-300' : 'bg-cyber-800 hover:bg-cyber-750 text-slate-300 border border-cyber-700'} font-bold text-xs disabled:opacity-30 disabled:cursor-not-allowed transition-all">
                                 Next →
                             </button>
                         </div>
@@ -902,15 +1085,23 @@
             `;
         }
 
+        function scrollToReviewQ(idx) {
+            const el = document.getElementById(`review-q-${idx}`);
+            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
         function setSimCount(cnt) {
             STATE.simulator.questionCount = cnt;
             renderApp();
         }
 
         function startSimulator() {
-            const scope = document.getElementById('sim-scope').value;
-            let pool = [];
+            const scopeEl = document.querySelector('input[name="sim-scope"]:checked');
+            const modeEl = document.querySelector('input[name="sim-mode"]:checked');
+            const scope = scopeEl ? scopeEl.value : 'all';
+            const mode = modeEl ? modeEl.value : 'instant';
 
+            let pool = [];
             if (scope === 'all') {
                 ALL_DATA.lectures.forEach(l => pool.push(...l.mcqs));
                 pool.push(...ALL_DATA.exams.mcqs);
@@ -928,6 +1119,7 @@
             STATE.simulator.currentIndex = 0;
             STATE.simulator.userAnswers = {};
             STATE.simulator.isSubmitted = false;
+            STATE.simulator.instantMode = (mode === 'instant');
 
             // Timer
             if (STATE.simulator.timerInterval) clearInterval(STATE.simulator.timerInterval);
@@ -939,6 +1131,7 @@
                     const m = Math.floor(STATE.simulator.timerSeconds / 60);
                     const s = STATE.simulator.timerSeconds % 60;
                     el.textContent = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                    if (STATE.simulator.timerSeconds <= 60) el.classList.add('text-rose-400');
                 }
                 if (STATE.simulator.timerSeconds <= 0) {
                     clearInterval(STATE.simulator.timerInterval);
@@ -950,6 +1143,10 @@
         }
 
         function setSimQuestionIndex(idx) {
+            if (STATE.simulator._autoAdvanceTimeout) {
+                clearTimeout(STATE.simulator._autoAdvanceTimeout);
+                STATE.simulator._autoAdvanceTimeout = null;
+            }
             if (idx >= 0 && idx < STATE.simulator.questions.length) {
                 STATE.simulator.currentIndex = idx;
                 renderApp();
@@ -957,22 +1154,48 @@
         }
 
         function selectSimOption(optIdx) {
-            STATE.simulator.userAnswers[STATE.simulator.currentIndex] = optIdx;
-            renderApp();
+            const sim = STATE.simulator;
+            // Prevent re-selection if already answered in instant mode
+            if (sim.instantMode !== false && sim.userAnswers[sim.currentIndex] !== undefined) return;
+
+            sim.userAnswers[sim.currentIndex] = optIdx;
+            renderApp(); // Show instant feedback immediately
+
+            // Auto-advance to next unanswered question after 1.6s (instant mode only)
+            if (sim.instantMode !== false) {
+                const nextIdx = sim.currentIndex + 1;
+                if (nextIdx < sim.questions.length) {
+                    if (sim._autoAdvanceTimeout) clearTimeout(sim._autoAdvanceTimeout);
+                    sim._autoAdvanceTimeout = setTimeout(() => {
+                        // Find next unanswered question from current position
+                        let target = nextIdx;
+                        for (let i = nextIdx; i < sim.questions.length; i++) {
+                            if (sim.userAnswers[i] === undefined) { target = i; break; }
+                        }
+                        sim.currentIndex = target;
+                        renderApp();
+                    }, 1600);
+                }
+            }
         }
 
         function submitSimulator() {
             if (confirm("Are you sure you want to submit your exam simulation?")) {
                 if (STATE.simulator.timerInterval) clearInterval(STATE.simulator.timerInterval);
+                if (STATE.simulator._autoAdvanceTimeout) clearTimeout(STATE.simulator._autoAdvanceTimeout);
                 STATE.simulator.isSubmitted = true;
                 renderApp();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         }
 
         function resetSimulator() {
+            if (STATE.simulator.timerInterval) clearInterval(STATE.simulator.timerInterval);
+            if (STATE.simulator._autoAdvanceTimeout) clearTimeout(STATE.simulator._autoAdvanceTimeout);
             STATE.simulator.questions = [];
             STATE.simulator.userAnswers = {};
             STATE.simulator.isSubmitted = false;
+            STATE.simulator.instantMode = true;
             renderApp();
         }
 
@@ -1160,7 +1383,9 @@
         function handleSelectExamMCQ(qId, optIdx) {
             STATE.examMCQAnswers[qId] = optIdx;
             saveState();
+            const y = window.scrollY;
             renderApp();
+            window.scrollTo({ top: y, behavior: 'instant' });
         }
 
         // ── SEARCH MODAL FUNCTIONALITY ───────────────────────────────────────────────

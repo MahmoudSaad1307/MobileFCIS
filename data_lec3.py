@@ -354,3 +354,4 @@ mcqs = [
         "explanation": "A Uniform Resource Identifier (URI) uniquely identifies a resource on Android. It consists of a scheme (e.g., content, file, http, geo, tel), authority/host, and path, enabling Android to determine which ContentProvider or app handles it.",
     },
 ]
+

@@ -386,3 +386,4 @@ mcqs = [
         "explanation": "While raw SQLiteOpenHelper checks queries only at runtime when executed, Room checks SQL syntax and table schema at compile-time, automatically generates Object-Relational Mapping (ORM) code, and eliminates cursor parsing boilerplate.",
     },
 ]
+

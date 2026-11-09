@@ -380,3 +380,4 @@ mcqs = [
         "explanation": "LazyColumn is Compose's equivalent of RecyclerView. Rather than instantiating and measuring hundreds of items at once (which a standard Column would do), LazyColumn only measures and composes items visible in the current viewport, ensuring smooth 60/120 fps scrolling.",
     },
 ]
+
